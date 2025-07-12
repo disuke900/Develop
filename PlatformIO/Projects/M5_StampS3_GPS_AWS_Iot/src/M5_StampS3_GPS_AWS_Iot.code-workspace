@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "MQTT_MSG_TEST_to_AWS",
+			"path": "../../MQTT_MSG_TEST_to_AWS"
+		},
+		{
+			"name": "MQTT_AWS_test2",
+			"path": "../../MQTT_AWS_test2"
+		},
+		{
+			"name": "mqtt_test_S3",
+			"path": "../../../../../Users/disuk/Documents/PlatformIO/Projects/mqtt_test_S3"
+		}
+	],
+	"settings": {}
+}
