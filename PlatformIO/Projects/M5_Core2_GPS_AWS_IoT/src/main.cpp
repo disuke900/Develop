@@ -1,3 +1,4 @@
+#include <M5Core2.h>
 #include <WiFi.h>
 #include <time.h>
 #include <HardwareSerial.h>
@@ -16,20 +17,15 @@ CRGB leds[NUM_LEDS];
 // GPS設定
 HardwareSerial GPS_serial(1);
 TinyGPSPlus gps;
-#define GPS_RX 44
-#define GPS_TX 43
+#define GPS_RX 14
+#define GPS_TX 13
 
 // AWS IoT
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
-
-// #define WIFI_SSID "neko01"
-// #define WIFI_PASSPHRASE "64646631"
-
-#define WIFI_SSID "iphone1"
-#define WIFI_PASSPHRASE "qwertyui"
-
-#define DEVICE_NAME "M5StampS3"
+#define WIFI_SSID "neko01"
+#define WIFI_PASSPHRASE "64646631"
+#define DEVICE_NAME "M5Core2"
 #define AWS_IOT_ENDPOINT "a1rf2bv1k9ed2q-ats.iot.us-east-1.amazonaws.com"
 #define AWS_IOT_PORT 8883
 #define PUBLISH_TOPIC DEVICE_NAME"/status"
@@ -45,6 +41,15 @@ const int maxLines = 10;
 
 void logPrintln(const String &message) {
   Serial.println(message);
+
+  if (currentLine >= maxLines) {
+    M5.Lcd.fillScreen(BLACK);
+    currentLine = 0;
+  }
+
+  M5.Lcd.setCursor(0, currentLine * lineHeight);
+  M5.Lcd.println(message);
+  currentLine++;
 }
 
 #include <string>
@@ -75,6 +80,13 @@ void flashLED(CRGB color, int duration_ms) {
   setLED(CRGB::Black);
 }
 
+void M5DisplaySetup(){
+  M5.Lcd.setRotation(1);        // 向き調整（お好みで）
+  M5.Lcd.setTextSize(1);        // サイズ調整（お好みで）
+  M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.fillScreen(BLACK);     // 初期化
+}
+
 void connect_wifi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSPHRASE);
   int retry_count = 0;
@@ -100,8 +112,8 @@ bool connect_awsiot() {
   }
 
   auto ca = readFileToCharArray("/certs/AmazonRootCA1.pem");
-  auto cert = readFileToCharArray("/certs/6f24-certificate.pem.crt");
-  auto key = readFileToCharArray("/certs/6f24-private.pem.key");
+  auto cert = readFileToCharArray("/certs/99c1-certificate.pem.crt");
+  auto key = readFileToCharArray("/certs/99c1-private.pem.key");
 
   if (!ca || !cert || !key) {
     logPrintln("Certificate load failed");
@@ -130,8 +142,9 @@ bool connect_awsiot() {
   return false;
 }
 
-
 void setup() {
+  M5.begin();
+  M5DisplaySetup();
   Serial.begin(115200);
 
   GPS_serial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
@@ -169,26 +182,11 @@ unsigned long gpsInterval = 20000;
 
 void loop() {
   mqtt_client.loop();
-  static bool gpsDataSeen = false;
 
   // GPSデータの読み取り
   while (GPS_serial.available()) {
-    // ここでLEDを一瞬光らせる（最初のバイトのみで十分）
-    
-    if (!gpsDataSeen) {
-      flashLED(CRGB::LightGreen, 50);  // GPSから初バイト受信
-      gpsDataSeen = true;
-    }else{
-      flashLED(CRGB::Orange, 50);
-    }
-
     char c = GPS_serial.read();
     gps.encode(c);
-  }
-
-  // 次のループで再点灯するため、リセット
-  if (GPS_serial.available() == 0) {
-    gpsDataSeen = false;
   }
 
   // 20秒ごとに送信
@@ -204,10 +202,10 @@ void loop() {
       doc["lon"] = gps.location.lng();
       doc["alt"] = gps.altitude.meters();
 
-      flashLED(CRGB::DarkGreen, 200);
+      flashLED(CRGB::Orange, 200);
     } else {
       doc["error"] = "GPS no fix";
-      flashLED(CRGB::Yellow, 200);
+      flashLED(CRGB::BlueViolet, 200);
     }
 
     // JSON化してpublish
